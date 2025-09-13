@@ -24,6 +24,13 @@ export class Server {
     }
 
     async start() {
+
+        //middleware para parsear el body de las peticiones
+        this.app.use(express.json());
+
+        this.app.use(express.urlencoded({ extended: true }));
+
+
         //usar las rutas definidas
         this.app.use(this.routes);
 
