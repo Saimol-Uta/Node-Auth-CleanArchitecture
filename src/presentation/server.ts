@@ -1,8 +1,9 @@
-import express from 'express';
+import express, { Router } from 'express';
 
 
 interface Options {
     port?: number;
+    routes: Router;
 }
 
 //explicacion de dependencia explicita: Dependencia que se inyecta a traves del constructor
@@ -14,14 +15,19 @@ export class Server {
     // explicacion: readonly es para que no se pueda modificar despues de la inicializacion
     public readonly app = express();
     private readonly port: number;
+    private readonly routes: Router;
 
     constructor(optinos: Options) {
-        const { port = 3100 } = optinos;
+        const { port = 3100, routes } = optinos;
         this.port = port;
+        this.routes = routes;
     }
 
     async start() {
+        //usar las rutas definidas
+        this.app.use(this.routes);
 
+        //iniciar el servidor en el puerto definido
         this.app.listen(this.port, () => {
             console.log(`Server is running on port ${this.port}`);
         });
