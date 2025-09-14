@@ -1,3 +1,4 @@
+import { LoginUserDto } from "../dtos/auth/login-user.dtos";
 import { RegisterUserDto } from "../dtos/auth/register-user.dtos";
 import { UserEntity } from "../entities/user.entity";
 

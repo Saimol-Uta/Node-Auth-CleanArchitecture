@@ -1,6 +1,7 @@
 import { BcryptAdapter } from "../../config";
 import { UserModel } from "../../data/mongodb";
 import { AuthDatasource, CustomError, RegisterUserDto, UserEntity } from "../../domain";
+import { LoginUserDto } from "../../domain/dtos/auth/login-user.dtos";
 import { UserMapper } from "../mappers/user.mapper";
 
 type HashFunction = (password: string) => string;
@@ -12,6 +13,28 @@ export class AuthDatasourceImple implements AuthDatasource {
         private readonly hashPassword: HashFunction = BcryptAdapter.hash,
         private readonly comparePassword: CompareFunction = BcryptAdapter.compare
     ) { }
+    async login(loginUserDto: LoginUserDto): Promise<UserEntity> {
+        const { email, password } = loginUserDto;
+
+        try {
+
+            const existEmail = await UserModel.findOne({ email });
+            if (!existEmail) throw CustomError.badRequest('Email not exist');
+
+            const passwordCorrect = this.comparePassword(password, existEmail!.password);
+
+            if (!passwordCorrect) throw CustomError.unauthorized('Password not correct');
+            return UserMapper.userEntityFromObject(existEmail!);
+
+        } catch (error) {
+            if (error instanceof CustomError) {
+                throw error;
+            }
+
+            throw CustomError.internalServer();
+        }
+
+    }
 
     async register(registerUserDto: RegisterUserDto): Promise<UserEntity> {
         const { name, email, password } = registerUserDto;
