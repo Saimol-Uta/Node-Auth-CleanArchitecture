@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { JwtAdapter } from "../../config";
+import { UserModel } from "../../data/mongodb";
 
 
 
@@ -15,8 +16,11 @@ export class AuthMiddleware {
 
         try {
 
-            const payload = await JwtAdapter.validateToken(token);
+            const payload = await JwtAdapter.validateToken<{ id: string }>(token);
             if (!payload) return res.status(401).json({ error: 'Invalid token' });
+
+            const user = await UserModel.findById(payload.id);
+            if (!user) return res.status(401).json({ error: 'invalid token - user not found' });
 
             //el req.body.token se usa para pasar el token al controlador
             //de esta manera se evita que se pierdan los demas datos que se envian en el body
@@ -27,7 +31,7 @@ export class AuthMiddleware {
             //a qui se usa el req.body = { token } para evitar que se modifique el objeto req.body
             //de esta manera se evita que se pierdan los demas datos que se envian en el body
             //y solo se agrega el token al body
-            req.body = { payload };
+            req.body = { user };
 
             // req.body = {token} vs req.body.token = token
             // la diferencia es que el primero crea un nuevo objeto req.body
