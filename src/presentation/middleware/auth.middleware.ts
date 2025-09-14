@@ -1,10 +1,11 @@
 import { NextFunction, Request, Response } from "express";
+import { JwtAdapter } from "../../config";
 
 
 
 export class AuthMiddleware {
 
-    static validJWT = (req: Request, res: Response, nex: NextFunction) => {
+    static validJWT = async (req: Request, res: Response, nex: NextFunction) => {
 
         const authorization = req.header('Authorization');
         if (!authorization) return res.status(401).json({ error: 'No token provided' });
@@ -13,16 +14,20 @@ export class AuthMiddleware {
         const token = authorization.split(' ').at(1) || '';
 
         try {
+
+            const payload = await JwtAdapter.validateToken(token);
+            if (!payload) return res.status(401).json({ error: 'Invalid token' });
+
             //el req.body.token se usa para pasar el token al controlador
             //de esta manera se evita que se pierdan los demas datos que se envian en el body
             //y solo se agrega el token al body
             //
-            req.body.token = token;
+            //req.body.token = token;
 
             //a qui se usa el req.body = { token } para evitar que se modifique el objeto req.body
             //de esta manera se evita que se pierdan los demas datos que se envian en el body
             //y solo se agrega el token al body
-            req.body = { token };
+            req.body = { payload };
 
             // req.body = {token} vs req.body.token = token
             // la diferencia es que el primero crea un nuevo objeto req.body

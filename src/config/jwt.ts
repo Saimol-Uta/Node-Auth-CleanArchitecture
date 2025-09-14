@@ -1,4 +1,4 @@
-import { sign, Secret, SignOptions } from 'jsonwebtoken';
+import { sign, Secret, SignOptions, verify } from 'jsonwebtoken';
 import { envs } from './env';
 
 
@@ -15,6 +15,16 @@ export class JwtAdapter {
             sign(payload, secret, { expiresIn: duration }, (err, token) => {
                 if (err || !token) return resolve(null);
                 resolve(token);
+            });
+        });
+    }
+
+    static validateToken(token: string) {
+
+        return new Promise((resolve) => {
+            verify(token, envs.JWT_SEED, (err, decoded) => {
+                if (err || !decoded) return resolve(null);
+                resolve(decoded);
             });
         });
     }
