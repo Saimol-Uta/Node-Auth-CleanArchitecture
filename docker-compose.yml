@@ -1,14 +1,18 @@
-version: '3.8'
-
 services:
-  
-  mongo-bd:
-    image: mongo:6.0.6
-    restart: always
+  postgres:
+    image: postgres:16
+    container_name: parte1-postgres
+    restart: unless-stopped
+    env_file: .env
     environment:
-      MONGO_INITDB_ROOT_USERNAME: mongo-user
-      MONGO_INITDB_ROOT_PASSWORD: 123456
-    volumes:
-      - ./mongo:/data/db
+      - POSTGRES_USER=UserPostgres
+      - POSTGRES_PASSWORD=12345678
+      - POSTGRES_DB=dbPostgres
+      - TZ=UTC
     ports:
-      - 27017:27017
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_postgres.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+volumes:
+  postgres_data:
