@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { JwtAdapter } from "../../config";
 import { UserModel } from "../../data/mongodb";
+import prisma from "../../data/Postgres";
 
 
 
@@ -19,8 +20,17 @@ export class AuthMiddleware {
             const payload = await JwtAdapter.validateToken<{ id: string }>(token);
             if (!payload) return res.status(401).json({ error: 'Invalid token' });
 
-            const user = await UserModel.findById(payload.id);
-            if (!user) return res.status(401).json({ error: 'invalid token - user not found' });
+            const dbClient = process.env.DB_CLIENT || 'mongodb';
+            if (dbClient === 'postgresql') {
+                const user = await prisma.user.findUnique({ where: { id: Number(payload.id) } });
+                if (!user) return res.status(401).json({ error: 'invalid token - user not found' });
+                req.body = { user };
+            } else if (dbClient === 'mongodb') {
+                const user = await UserModel.findById(payload.id);
+                if (!user) return res.status(401).json({ error: 'invalid token - user not found' });
+                req.body = { user };
+            }
+
 
             //el req.body.token se usa para pasar el token al controlador
             //de esta manera se evita que se pierdan los demas datos que se envian en el body
@@ -31,7 +41,7 @@ export class AuthMiddleware {
             //a qui se usa el req.body = { token } para evitar que se modifique el objeto req.body
             //de esta manera se evita que se pierdan los demas datos que se envian en el body
             //y solo se agrega el token al body
-            req.body = { user };
+
 
             // req.body = {token} vs req.body.token = token
             // la diferencia es que el primero crea un nuevo objeto req.body
@@ -43,7 +53,7 @@ export class AuthMiddleware {
 
         } catch (error) {
             console.log(error);
-            res.status(500).json({ error: 'Internal Server Error' });
+            res.status(500).json({ error: 'Internal Server Error middleware' });
         }
     }
 
