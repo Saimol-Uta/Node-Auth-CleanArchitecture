@@ -9,12 +9,16 @@ import { Server } from "./presentation/server";
 })()
 
 async function main() {
-    // todo: wait base de datos
+    // Conexión a base de datos usando el patrón Singleton
 
-    await MongoDatabase.connect({
+    // MongoDB Singleton
+    const mongoInstance = MongoDatabase.getInstance();
+    await mongoInstance.connect({
         dbName: envs.MONGO_DB_NAME,
         mongoUrl: envs.MONGO_URL,
-    })
+    });
+
+    // PostgreSQL ya usa Singleton a través de la importación de prisma
 
     new Server({
         port: envs.PORT,
