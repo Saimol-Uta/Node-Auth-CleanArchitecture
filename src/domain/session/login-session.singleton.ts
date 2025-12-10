@@ -1,19 +1,4 @@
-/**
- * SINGLETON para la sesión de login del usuario
- * 
- * Este patrón asegura que:
- * - Solo existe una única instancia de sesión activa
- * - Los datos del usuario autenticado se mantienen durante toda la sesión
- * - Proporciona un punto único de acceso a la información del usuario logueado
- * 
- * Ventajas:
- * - Gestión centralizada de la sesión del usuario
- * - Evita múltiples instancias de sesión
- * - Facilita el acceso a los datos del usuario en toda la aplicación
- * - Útil para mantener el estado de autenticación
- */
 
-// Tipo para usuario en sesión (sin información sensible como password)
 export interface SessionUser {
     id: string;
     name: string;
