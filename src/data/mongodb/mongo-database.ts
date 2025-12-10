@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { DatabaseConfigSingleton } from "../../config/database-config.singleton";
 
 interface Option {
     mongoUrl: string;
@@ -22,20 +23,36 @@ export class MongoDatabase {
     }
 
     // Método de conexión mejorado con Singleton
-    public async connect(option: Option): Promise<boolean> {
+    public async connect(option?: Option): Promise<boolean> {
         // Si ya está conectado, retorna true sin reconectar
         if (MongoDatabase.isConnected) {
             console.log('MongoDB already connected (Singleton pattern)');
             return true;
         }
 
-        const { dbName, mongoUrl } = option;
+        // Usar el Singleton de configuración de base de datos si no se pasan opciones
+        let dbName: string;
+        let mongoUrl: string;
+
+        if (option) {
+            dbName = option.dbName;
+            mongoUrl = option.mongoUrl;
+        } else {
+            // Obtener la configuración desde el DatabaseConfigSingleton
+            const dbConfig = DatabaseConfigSingleton.getInstance();
+            const mongoConfig = dbConfig.getMongoDBConnection();
+            mongoUrl = mongoConfig.url;
+            dbName = mongoConfig.dbName || 'authDB';
+            console.log('📦 Using DatabaseConfigSingleton for MongoDB connection');
+        }
+
         try {
             await mongoose.connect(mongoUrl, {
                 dbName: dbName
             });
             MongoDatabase.isConnected = true;
             console.log('MongoDB connected successfully (Singleton pattern)');
+            console.log(`📊 Database: ${dbName}`);
             return true;
 
         } catch (error) {

@@ -4,6 +4,7 @@ import { JwtAdapter } from "../../config";
 import { UserModel } from "../../data/mongodb";
 import { LoginUserDto } from "../../domain/dtos/auth/login-user.dtos";
 import { LoginUser } from "../../domain/use-cases/auth/login-user.use-case";
+import { LoginSessionSingleton } from "../../domain/session/login-session.singleton";
 
 
 
@@ -52,17 +53,99 @@ export class AuthController {
 
         new LoginUser(this.authRepository)
             .execute(loginUserDto!)
-            .then(data => res.json(data))
+            .then(data => {
+                // Guardar la sesión del usuario en el Singleton
+                const sessionSingleton = LoginSessionSingleton.getInstance();
+                // Extraer solo la información necesaria (sin password)
+                const sessionUser = {
+                    id: data.user.id,
+                    name: data.user.name,
+                    email: data.user.email
+                };
+                sessionSingleton.login(sessionUser, data.token);
+
+                console.log(`✅ User session created for: ${data.user.email}`);
+                console.log(`📊 Session stats:`, sessionSingleton.getSessionStats());
+
+                return res.json(data);
+            })
             .catch(error => this.handleError(error, res));
     }
 
     getUsers = (req: Request, res: Response) => {
+        // Verificar si hay una sesión activa usando el Singleton
+        const sessionSingleton = LoginSessionSingleton.getInstance();
+
+        if (!sessionSingleton.isLoggedIn()) {
+            return res.status(401).json({
+                error: 'No active session found. Please login first.'
+            });
+        }
+
+        // Obtener información del usuario de la sesión
+        const currentUser = sessionSingleton.getCurrentUser();
+        const sessionInfo = sessionSingleton.getSessionInfo();
+
         UserModel.find()
             .then(users => res.json({
-                //users,
-                user: req.body.user
+                users: users,
+                session: {
+                    currentUser: {
+                        id: currentUser?.id,
+                        name: currentUser?.name,
+                        email: currentUser?.email
+                    },
+                    sessionDuration: `${sessionSingleton.getSessionDuration()} minutes`,
+                    sessionId: sessionInfo.sessionId,
+                    loginTime: sessionInfo.loginTime
+                }
             }))
             .catch(() => res.status(500).json({ error: 'Internal Server Error' }));
+    }
+
+    // Nuevo endpoint para cerrar sesión
+    logoutUser = (req: Request, res: Response) => {
+        const sessionSingleton = LoginSessionSingleton.getInstance();
+
+        if (!sessionSingleton.isLoggedIn()) {
+            return res.status(400).json({
+                error: 'No active session to logout'
+            });
+        }
+
+        const userEmail = sessionSingleton.getUserEmail();
+        sessionSingleton.logout();
+
+        return res.json({
+            message: `User ${userEmail} logged out successfully`,
+            timestamp: new Date().toISOString()
+        });
+    }
+
+    // Nuevo endpoint para obtener información de la sesión actual
+    getSessionInfo = (req: Request, res: Response) => {
+        const sessionSingleton = LoginSessionSingleton.getInstance();
+
+        if (!sessionSingleton.isLoggedIn()) {
+            return res.status(401).json({
+                error: 'No active session found'
+            });
+        }
+
+        const stats = sessionSingleton.getSessionStats();
+        const currentUser = sessionSingleton.getCurrentUser();
+
+        return res.json({
+            session: {
+                user: {
+                    id: currentUser?.id,
+                    name: currentUser?.name,
+                    email: currentUser?.email
+                },
+                stats: stats,
+                token: sessionSingleton.getToken() ? '***' : null // Ocultar el token por seguridad
+            }
+        });
     }
 
 }

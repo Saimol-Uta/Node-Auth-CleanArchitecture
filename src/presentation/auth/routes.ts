@@ -30,6 +30,10 @@ export class AuthRoutes {
 
             router.get('/', AuthMiddleware.validJWT, controller.getUsers);
 
+            // Nuevas rutas para gestión de sesión usando Singleton
+            router.post('/logout', controller.logoutUser);
+            router.get('/session', controller.getSessionInfo);
+
         })();
         //a qui se crea la instancia del repositorio
 
